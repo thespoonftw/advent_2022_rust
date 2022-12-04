@@ -26,11 +26,10 @@ impl Problem for Day03 {
 
 fn get_backpack_item(line: &str) -> usize {
     let l = line.len() / 2;
-    let front:HashSet<char> = line.chars().take(l).collect();
-    let back:HashSet<char> = line.chars().skip(l).take(l).collect();
-    let i:HashSet<&char> = front.intersection(&back).collect();
-    let c = i.iter().next().unwrap().clone().clone();
-    return char_to_value(c);
+    let front:Vec<char> = line.chars().take(l).collect();
+    let back:Vec<char> = line.chars().skip(l).take(l).collect();
+    let i = intersect(front, back);
+    return char_to_value(i[0]);
 }
 
 fn char_to_value(c: char) -> usize {
@@ -43,12 +42,13 @@ fn char_to_value(c: char) -> usize {
 }
 
 fn get_badge(line1: &str, line2: &str, line3: &str) -> usize {
-    let l1:HashSet<char> = line1.chars().collect();
-    let l2:HashSet<char> = line2.chars().collect();
-    let l3:HashSet<char> = line3.chars().collect();
-    let i1:HashSet<&char> = l1.intersection(&l2).collect();
-    let i2:HashSet<&char> = l1.intersection(&l3).collect();
-    let i3:HashSet<&&char> = i1.intersection(&i2).collect();
-    let c = i3.iter().next().unwrap().clone().clone().clone();
-    return char_to_value(c);
+    let i1 = intersect(line1.chars().collect(), line2.chars().collect());
+    let i2 = intersect(i1, line3.chars().collect());
+    return char_to_value(i2[0]);
+}
+
+fn intersect(v1: Vec<char>, v2: Vec<char>) -> Vec<char> {
+    let h1:HashSet<char> = v1.into_iter().collect();
+    let h2:HashSet<char> = v2.into_iter().collect();
+    return h1.intersection(&h2).map(|c| c.clone()).collect();
 }
