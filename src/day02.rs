@@ -1,93 +1,70 @@
-use std::char;
-
 use crate::problem::Problem;
+use std::collections::HashMap;
 
 pub struct Day02();
 
 impl Problem for Day02 {
 
     fn part_one(&self, input: &str) -> String {
-        let score = get_score(input, true);
-        return score.to_string();
+        return Scorer::new_p1_scorer().get_total_score(input);
     }
 
     fn part_two(&self, input: &str) -> String {
-        let score = get_score(input, false);
-        return score.to_string();
+        return Scorer::new_p2_scorer().get_total_score(input);
     }
 }
 
-
-fn get_score(input: &str, is_part_1: bool) -> i32 {
-        
-    let mut total_score = 0;
-
-    for line in input.lines() {
-        
-        let their_choice = line.chars().nth(0).unwrap();
-        let my_info = line.chars().nth(2).unwrap();
-
-        if is_part_1 {
-            total_score += p1_win_score(their_choice, my_info);
-            total_score += p1_info_score(my_info);            
-        } else {
-            total_score += p2_info_score(their_choice, my_info);
-            total_score += p2_win_score(my_info);      
-        }
-    }
-
-    return total_score;
+struct Scorer {
+    hash: HashMap<String, i32>
 }
 
-fn p1_win_score(c1: char, c2: char) -> i32 {
-    if (c1 == 'A' && c2 == 'X') || (c1 == 'B' && c2 == 'Y') || (c1 == 'C' && c2 == 'Z') {
-        return 3;
-    }
-    else if (c1 == 'A' && c2 == 'Y') || (c1 == 'B' && c2 == 'Z') || (c1 == 'C' && c2 == 'X') {
-        return 6;
-    }
-    else {
-        return 0;
-    }
-}
+impl Scorer {
 
-fn p1_info_score(c: char) -> i32 {
-    if c == 'X' {
-        return 1;
+    fn new_p1_scorer() -> Scorer {
+        let mut s = Scorer{hash: HashMap::new()}; 
+        // rock
+        s.add("C X", 7); // win
+        s.add("A X", 4); // tie
+        s.add("B X", 1); // lose
+        // paper
+        s.add("A Y", 8); // win 
+        s.add("B Y", 5); // tie
+        s.add("C Y", 2); // lose
+        // scissors
+        s.add("B Z", 9); // win
+        s.add("C Z", 6); // tie
+        s.add("A Z",3); // lose
+        return s;
     }
-    else if c == 'Y' {
-        return 2;
-    }
-    else if c == 'Z' {
-        return 3;
-    }
-    return 0;
-}
 
-fn p2_win_score(c: char) -> i32 {
-    if c == 'X' {
-        return 0;
+    fn new_p2_scorer() -> Scorer {
+        let mut s = Scorer{hash: HashMap::new()}; 
+        // lose
+        s.add("B X", 1); // rock
+        s.add("C X", 2); // paper
+        s.add("A X", 3); // scis
+        // tie
+        s.add("A Y", 4); // rock 
+        s.add("B Y", 5); // paper
+        s.add("C Y", 6); // scis
+        // win
+        s.add("C Z", 7); // rock
+        s.add("A Z", 8); // paper
+        s.add("B Z", 9); // scis
+        return s;
     }
-    else if c == 'Y' {
-        return 3;
-    }
-    else if c == 'Z' {
-        return 6;
-    }
-    return 0;
-}
 
-fn p2_info_score(c1: char, c2: char) -> i32 {
-    // rock
-    if (c1 == 'A' && c2 == 'Y') || (c1 == 'B' && c2 == 'X') || (c1 == 'C' && c2 == 'Z') {
-        return 1;
+    fn add(&mut self, s: &str, i: i32) {
+        self.hash.insert(s.to_string(), i);
     }
-    // paper
-    else if (c1 == 'B' && c2 == 'Y') || (c1 == 'C' && c2 == 'X') || (c1 == 'A' && c2 == 'Z') {
-        return 2;
+
+    fn get_score(&self, input: &str) -> i32 {
+        return self.hash.get(input).unwrap().clone();
     }
-    // scissors
-    else {
-        return 3;
+
+    fn get_total_score(&self, input: &str) -> String {
+        let sum:i32 = input.lines().map(|l| self.get_score(l)).sum();
+        return sum.to_string();
     }
+
 }
