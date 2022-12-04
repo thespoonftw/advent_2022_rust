@@ -5,12 +5,12 @@ pub struct Day01();
 impl Problem for Day01 {
 
     fn part_one(&self, input: &str) -> String {
-        let calories = get_calories(input);
-        return calories[0].to_string();
+        return get_calories(input).iter().max().unwrap().to_string();
     }
 
     fn part_two(&self, input: &str) -> String {
-        let calories = get_calories(input);
+        let mut calories = get_calories(input);
+        calories.sort_by(|a, b| b.cmp(a));
         let sum = calories[0] + calories[1] + calories[2];
         return sum.to_string();
     }
@@ -31,9 +31,6 @@ fn get_calories(input: &str) -> Vec<i32> {
             current += value;
         }
     }
-
-    calories.sort();
-    calories.reverse();
     return calories;
 
 }
