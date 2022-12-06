@@ -17,9 +17,16 @@ impl Problem for Day05 {
     }
 }
 
-pub struct StackSolver {
+struct StackSolver {
     stacks: Vec<Vec<char>>,
-    instructions: Vec<Vec<usize>>
+    instructions: Vec<Instruction>
+}
+
+#[derive(Clone)]
+struct Instruction {
+    amount: usize,
+    from: usize,
+    to: usize
 }
 
 impl StackSolver {
@@ -34,6 +41,7 @@ impl StackSolver {
         for i in 0..width {
 
             let mut s:Vec<char> = Vec::new();
+            
             for j in (0..height).rev() {
 
                 let x = (i * 4) + 1;
@@ -47,7 +55,7 @@ impl StackSolver {
         }
 
         let lines2:Vec<&str> = lines.iter().skip(height + 2).map(|l| l.clone()).collect();
-        let instructions: Vec<Vec<usize>> = lines2.iter().map(|l| line_to_instruction(l.clone())).collect();
+        let instructions: Vec<Instruction> = lines2.iter().map(|l| Instruction::new(l.clone())).collect();
 
         return StackSolver{stacks, instructions}
 
@@ -55,49 +63,37 @@ impl StackSolver {
 
     fn move_boxes_pt1(&mut self) {
         for ins in &self.instructions.clone() {
-            let count = ins.get(0).unwrap().clone();
-            for _ in 0..count {
-                let c = self.pop(ins.get(1).unwrap());
-                self.push(ins.get(2).unwrap(), c);
+            for _ in 0..ins.amount {
+                let c = self.stacks.get_mut(ins.from).unwrap().pop().unwrap();
+                self.stacks.get_mut(ins.to).unwrap().push(c);
             }
         }
     }
-
+    
     fn move_boxes_pt2(&mut self) {
         for ins in &self.instructions.clone() {
-            let count = ins.get(0).unwrap().clone();
-            let mut stack:Vec<char> = Vec::new();
-            for _ in 0..count {
-                let c = self.pop(ins.get(1).unwrap());
-                stack.push(c);
-            }
-            for _ in 0..count {
-                let c = stack.pop().unwrap();
-                self.push(ins.get(2).unwrap(), c);
-            }
+            let from = self.stacks.get_mut(ins.from).unwrap();
+            let l = from.len() - ins.amount;
+            let mut tail = from.split_off(l);
+            self.stacks.get_mut(ins.to).unwrap().append(&mut tail);
         }
-    }
-
-    fn pop(&mut self, stack_number: &usize) -> char {
-        return self.stacks.get_mut(stack_number - 1).unwrap().pop().unwrap();
-    }
-
-    fn push(&mut self, stack_number: &usize, c: char) {
-        return self.stacks.get_mut(stack_number - 1).unwrap().push(c);
     }
 
     fn get_result(&self) -> String {
-        let mut returner = String::new();
-        for t in &self.stacks {
-            returner.push(t.iter().last().unwrap().clone());
-        }
-        return returner;
+        return self.stacks.iter().map(|s| s.last().unwrap()).collect();
     }
+
+    
 
 }
 
-// converts a instruction string to a 3 integer Vec.
-fn line_to_instruction(line: &str) -> Vec<usize> {
-    let split:Vec<&str> = line.split(' ').collect();
-    return split.iter().skip(1).step_by(2).map(|s| s.clone().parse().unwrap()).collect();
+impl Instruction {
+
+    fn new(line: &str) -> Instruction {
+        let split:Vec<usize> = line.split(' ').skip(1).step_by(2).map(|s| s.parse().unwrap()).collect();
+        let amount = *split.get(0).unwrap();
+        let from = *split.get(1).unwrap() - 1;
+        let to = *split.get(2).unwrap() - 1;
+        return Instruction { amount, from, to }
+    }
 }
