@@ -16,10 +16,8 @@ impl Problem for Day06 {
 
 fn find_key(input: &str, length: usize) -> String {
 
-    let chars = input.chars().collect::<Vec<char>>();
-
-    for i in length..chars.len() {
-        let set:HashSet<char> = chars[i-length..i].to_vec().into_iter().collect();
+    for i in length..input.len() {
+        let set:HashSet<char> = input[i-length..i].chars().into_iter().collect();
         if set.len() == length {
             return i.to_string();
         }

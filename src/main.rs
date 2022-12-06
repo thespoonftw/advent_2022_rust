@@ -9,7 +9,7 @@ use std::fs;
 
 fn main() {
 
-    run(5);
+    run(6);
 
 }
 
