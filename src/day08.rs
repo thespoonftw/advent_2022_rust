@@ -28,29 +28,20 @@ impl TreeGrid {
         let width = input.lines().count();
         let visibilities = vec![0; width * width];
         let mut heights = Vec::<i32>::new();
-        
-        for line in input.lines() {
-            for c in line.chars() {
-                heights.push(c.to_digit(10).unwrap() as i32);
-            }
-        }
+        input.lines().for_each(|l| 
+            l.chars().for_each(|c|
+            heights.push(c.to_digit(10).unwrap() as i32)));
         return TreeGrid { width, heights, visibilities }
     }
 
     fn count_visible_trees(&mut self) -> usize {
-
-        for line in self.get_lines() {
-            self.mark_trees_visible(&line)
-        }
+        self.get_lines().into_iter().for_each(|l| self.line_tree_is_visible(&l));
         return self.visibilities.iter().sum();
     }
 
     fn max_visible_tree(&mut self) -> usize {
-
         self.visibilities = vec![1; self.width * self.width];
-        for line in self.get_lines() {
-            self.mark_trees_seen(&line)
-        }
+        self.get_lines().into_iter().for_each(|l| self.line_count_trees_seen(&l));
         return self.visibilities.iter().max().unwrap().clone();
     }
 
@@ -74,7 +65,7 @@ impl TreeGrid {
     }
 
     // go down the line, marking trees that we can see
-    fn mark_trees_visible(&mut self, indexes: &Vec<usize>) {
+    fn line_tree_is_visible(&mut self, indexes: &Vec<usize>) {
         let mut current_height = -1;
         for index in indexes.clone() {
             let h = self.heights[index];
@@ -89,7 +80,7 @@ impl TreeGrid {
     }
 
     // go down the line, counting how many trees each tree can see
-    fn mark_trees_seen(&mut self, indexes: &Vec<usize>) {
+    fn line_count_trees_seen(&mut self, indexes: &Vec<usize>) {
         let len = indexes.len();
 
         for i in 0..len {
