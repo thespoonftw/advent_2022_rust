@@ -5,59 +5,44 @@ pub struct Day10();
 impl Problem for Day10 {
 
     fn part_one(&self, input: &str) -> String {
-        return run(input).to_string();
+        let x_values = get_x_values(input);
+        let arr = [20, 60, 100, 140, 180, 220];
+        return arr.map(|a| (x_values[a] as usize) * a).iter().sum::<usize>().to_string();
     }
 
     fn part_two(&self, input: &str) -> String {
-        return input.len().to_string();
+        let x_values = get_x_values(input);
+        let r = 1..240;
+        return r.into_iter().map(|i| find_char(i-1, x_values[i as usize])).collect();
     }
 }
 
-fn run(input: &str) -> i32 {
-
-    let mut cycle_num = 0;
+fn get_x_values(input: &str) -> Vec<i32> {
+    let mut returner = Vec::<i32>::new();
     let mut x_value = 1;
-    let mut returner = 0;
-    let mut check_values = vec![20, 60, 100, 140, 180, 220];
-    let mut returner_string = "".to_string();
-
+    returner.push(1);
+    returner.push(1);
     for line in input.lines() {
-
-        let mut x_adder = 0;
-        let mut cycle_adder = 1;
-
+        returner.push(x_value);
         if line != "noop" {
-            x_adder = line.split_whitespace().collect::<Vec<&str>>()[1].parse::<i32>().unwrap();
-            cycle_adder = 2;
+            x_value += line.split_whitespace().collect::<Vec<&str>>()[1].parse::<i32>().unwrap();
+            returner.push(x_value);
         }
-
-        // part 2 stuff
-        for _ in 0..cycle_adder {
-
-            if is_within_range(cycle_num, x_value) {
-                returner_string += "#";
-            } else {
-                returner_string += ".";
-            }
-
-            cycle_num += 1;
-
-            if check_values.len() != 0 && cycle_num >= check_values[0] {
-                returner += x_value * check_values[0];
-                check_values.remove(0);
-            }
-        }
-
-        x_value += x_adder;
     }
-
-    println!("{returner_string}");
-
     return returner;
-
 }
 
-fn is_within_range(cycle_num: i32, x_value: i32) -> bool {
+fn find_char(cycle_num: i32, x_value: i32) -> String {
+    let mut returner = String::new();
+    if cycle_num % 40 == 0 {
+        returner += "\n";
+    }
     let line_pos = cycle_num % 40;
-    return (line_pos - x_value).abs() <= 1;
+    let is_on = (line_pos - x_value).abs() <= 1;
+    if is_on {
+        returner += "#";
+    } else {
+        returner += ".";
+    }
+    return returner;
 }
