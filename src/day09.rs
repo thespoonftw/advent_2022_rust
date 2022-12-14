@@ -81,7 +81,6 @@ impl StringSim {
             let tail = self.segments[self.segment_length-1];            
             self.visited_array[[tail.0 as usize, tail.1 as usize]] = true;
         }
-        let x = 1;
     }
 
     fn sum_visits(&self) -> usize {
