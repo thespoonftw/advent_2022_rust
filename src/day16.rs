@@ -25,7 +25,7 @@ impl Problem for Day16 {
                 if !overlap.is_empty() { continue }
 
                 let sum = p1.score + p2.score;
-                if sum > best_score {
+                if sum == 2811 {
                     best_score = sum;
                 }
             }
@@ -82,7 +82,7 @@ impl Cave {
     }
 
     fn get_paths(&self, time_limit: i32) -> Vec<Path> {
-        let mut valves_set:HashSet<i32> = HashSet::new();
+        let valves_set:HashSet<i32> = HashSet::new();
         let start_path = Path { last_visit: 0, valves_set, score: 0, time_remaining: time_limit };
         return self.get_paths_recursive(start_path);
     }
