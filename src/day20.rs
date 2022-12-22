@@ -56,7 +56,7 @@ fn mix_values(values: Vec<i64>, iterations: usize) -> Vec<i64> {
         }
     }
     
-    return circular_list.clone().iter().map(|t| t.0.clone()).collect();;
+    return circular_list.clone().iter().map(|t| t.0.clone()).collect();
 
 }
 
