@@ -20,9 +20,9 @@ impl Problem for Day21 {
         let lhs = monkeys.evaluate_monkey_recurse(root.clone().lhs.unwrap());
         let rhs = monkeys.evaluate_monkey_recurse(root.clone().rhs.unwrap());
         let monkey_to_start = if lhs.is_none() { root.lhs.unwrap() } else { root.rhs.unwrap() };
-        let value_to_match = if lhs.is_none() { rhs.unwrap() } else { lhs.unwrap() };
+        let value_to_start = if lhs.is_none() { rhs.unwrap() } else { lhs.unwrap() };
     
-        return monkeys.evaluate_humn_recurse(monkey_to_start, value_to_match).to_string();
+        return monkeys.evaluate_humn_recurse(monkey_to_start, value_to_start).to_string();
     }
 }
 
