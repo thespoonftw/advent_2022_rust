@@ -80,7 +80,6 @@ impl Map {
                     let next = self.get_next_position();
                     let is_wall = self.grid[next.face][(next.y, next.x)];
                     if is_wall {
-                        let a = 1;
                         break;
                     } else {
                         self.loc = next;
