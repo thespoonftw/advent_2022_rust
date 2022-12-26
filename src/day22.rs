@@ -6,160 +6,227 @@ pub struct Day22();
 impl Problem for Day22 {
 
     fn part_one(&self, input: &str) -> String {
-        let mut map = MapState::new(input);
+        let mut map = Map::new(input, true);        
         map.navigate();
         return map.get_password().to_string();
     }
 
     fn part_two(&self, input: &str) -> String {
-        return input.len().to_string();
+        let mut map = Map::new(input, false);        
+        map.navigate();
+        return map.get_password().to_string();
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-enum Tile {
-    Void,
-    Path,
-    Wall,
+struct Map {
+    grid: Vec<Array2<bool>>,
+    instructions: Vec<String>,
+    loc: Location,
+    face_offsets: Vec<(usize, usize)>,
+    size: usize,
+    connections: Vec<Vec<(usize, usize)>>,
 }
 
-#[derive(Debug)]
-struct MapState {
-    map: Map,
-    instructions: Vec<String>,
+#[derive(Clone, Copy, Debug)]
+struct Location {
     x: usize,
     y: usize,
-    facing: usize,
-}
-
-#[derive(Debug)]
-struct Map {
-    grid: Array2<Tile>,
-    row_limits: Vec<(usize, usize)>,
-    col_limits: Vec<(usize, usize)>,
+    dir: usize,
+    face: usize,
 }
 
 impl Map {
 
-    fn new(lines: Vec<&str>) -> Map {
-
-        let width = lines.iter().max_by_key(|l| l.len()).unwrap().len();
-        let height = lines.len();
-
-        let mut grid = Array2::from_elem((height, width), Tile::Void); 
-        for y in 0..height {
-            let line = lines[y];
-            for (x, c) in line.chars().enumerate() {
-                if c == '.' {
-                    grid[(y,x)] = Tile::Path; // y-x for columns-rows
-                } else if c == '#' {
-                    grid[(y,x)] = Tile::Wall;
-                }
-            }
-        }
-        
-        let mut col_limits = Vec::new();
-        for x in 0..width {
-            let column = grid.column(x);
-            let start = column.iter().position(|t| *t != Tile::Void).unwrap();
-            let end = height - column.iter().rev().position(|t| *t != Tile::Void).unwrap() - 1;
-            col_limits.push((start, end));
-        }
-
-        let mut row_limits = Vec::new();
-        for y in 0..height {
-            let row = grid.row(y);
-            let start = row.iter().position(|t| *t != Tile::Void).unwrap();
-            let end = width - row.iter().rev().position(|t| *t != Tile::Void).unwrap() - 1;
-            row_limits.push((start, end));
-        }
-
-        return Map { grid, row_limits, col_limits };
-
-    }
-}
-
-impl MapState {
-
-    fn new(input: &str) -> MapState {
+    fn new(input: &str, is_flat: bool) -> Map {
 
         let mut lines:Vec<&str> = input.lines().collect();
+
         let instruction_line = lines.pop().unwrap();
-        lines.pop(); // empty line
+        lines.pop(); // remove empty line
+        let instructions = parse_instructions(instruction_line);
 
-        let map = Map::new(lines);
-        let instructions = MapState::parse_instructions(instruction_line);
-        let x = map.row_limits[0].0;
-
-        return MapState { map, instructions, x, y: 0, facing: 0 }
-
-    }
-
-    fn parse_instructions(input: &str) -> Vec<String> {
-        let mut instructions:Vec<String> = Vec::new();
-        let mut num = String::new();
-        for c in input.chars() {
-            if c == 'L' || c == 'R' {
-                if num.len() > 0 {
-                    instructions.push(num);
-                    num = String::new();
+        let is_test = lines.len() < 20;
+        let loc = Location { x: 0, y: 0, dir: 0, face: 0 };
+        let size = get_size(is_test);
+        let face_offsets = get_face_offset(is_test);
+        let connections = get_connections(is_test, is_flat);
+        
+        let mut grid = Vec::new();
+        let chars:Vec<Vec<char>> = lines.iter().map(|l| l.chars().collect()).collect();
+        for f in 0..6 {
+            let mut face = Array2::from_elem((size, size), false);
+            let offset = face_offsets[f];
+            for x in 0..size {
+                for y in 0..size {
+                    face[(y,x)] = chars[y+offset.1][x+offset.0] == '#';           
                 }
-                instructions.push(c.to_string());
-            } else {
-                num.push(c);
-            }            
+            }
+            grid.push(face);
         }
-        if num.len() > 0 {
-            instructions.push(num);
-        }
-        return instructions;
+
+        return Map { grid, instructions, loc, size, face_offsets, connections }
     }
 
     fn navigate(&mut self) {
 
         for i in self.instructions.clone() {
             if i == "L" {
-                self.facing = (self.facing + 3) % 4;
+                self.loc.dir = (self.loc.dir + 3) % 4;
             } else if i == "R" {
-                self.facing = (self.facing + 1) % 4;
+                self.loc.dir = (self.loc.dir + 1) % 4;
             } else {
                 let dist = i.parse::<usize>().unwrap();
                 for _ in 0..dist {
-                    if !self.step_forward() {
+                    let next = self.get_next_position();
+                    let is_wall = self.grid[next.face][(next.y, next.x)];
+                    if is_wall {
+                        let a = 1;
                         break;
+                    } else {
+                        self.loc = next;
                     } 
                 }
             }
         }
     }
 
-    fn step_forward(&mut self) -> bool {
+    fn get_next_position(&self) -> Location {
 
-        let mut new_x = self.x;
-        let mut new_y = self.y;
-        let limits = if self.facing % 2 == 0 { self.map.row_limits[self.y] } else { self.map.col_limits[self.x] };
+        let s = self.size - 1;
+        let mut loc = self.loc.clone();
+        let connection = self.connections[loc.face][loc.dir];
 
-        if self.facing == 0 { // facing right
-            new_x = if self.x == limits.1 { limits.0 } else { self.x + 1 };
-        } else if self.facing == 1 { // facing down
-            new_y = if self.y == limits.1 { limits.0 } else { self.y + 1 };
-        } else if self.facing == 2 { // facing left
-            new_x = if self.x == limits.0 { limits.1 } else { self.x - 1 };
-        } else if self.facing == 3 { // facing up
-            new_y = if self.y == limits.0 { limits.1 } else { self.y - 1 };
+        if loc.dir == 0 {
+            if loc.x == s { // right edge                
+                return self.get_face_location(loc.y, connection.1, connection.0);
+            } else {
+                loc.x += 1;
+            }
+        } else if loc.dir == 1 {
+            if loc.y == s { // bottom edge
+                return self.get_face_location(s - loc.x, connection.1, connection.0);
+            } else {
+                loc.y += 1;
+            }
+        } else if loc.dir == 2 {
+            if loc.x == 0 { // left edge
+                return self.get_face_location(s - loc.y, connection.1, connection.0);
+            } else {
+                loc.x -= 1;
+            }
+        } else if loc.dir == 3 {
+            if loc.y == 0 { // top edge
+                return self.get_face_location(loc.x, connection.1, connection.0);
+            } else {
+                loc.y -= 1;
+            }
         }
+        return loc;
+    }
 
-        if self.map.grid[(new_y, new_x)] == Tile::Path {
-            self.x = new_x;
-            self.y = new_y;
-            return true;
-        } else {
-            return false;
+    fn get_face_location(&self, edge_position: usize, dir: usize, face: usize) -> Location {
+        let xy = self.get_face_position(edge_position, dir);
+        return Location { x: xy.0, y: xy.1, dir, face }
+    }
+
+    fn get_face_position(&self, edge_position: usize, dir: usize) -> (usize, usize) { // (x, y)
+        let s = self.size - 1;
+        match dir {
+            0 => return ( 0, edge_position ),
+            1 => return ( s - edge_position, 0 ),
+            2 => return ( s, s - edge_position ),
+            3 => return ( edge_position, s ),
+            _ => return ( 0, 0 ),
         }
     }
 
     fn get_password(&self) -> usize {
-        return (1000 * (self.y + 1)) + (4 * (self.x + 1)) + self.facing;
+        let offset = self.face_offsets[self.loc.face];
+        return (1000 * (self.loc.y + offset.1 + 1)) + (4 * (self.loc.x + offset.0 + 1)) + self.loc.dir;
     }
 
+}
+
+fn parse_instructions(instruction_line: &str) -> Vec<String> {
+    let mut instructions:Vec<String> = Vec::new();
+    let mut num = String::new();
+    for c in instruction_line.chars() {
+        if c == 'L' || c == 'R' {
+            if num.len() > 0 {
+                instructions.push(num);
+                num = String::new();
+            }
+            instructions.push(c.to_string());
+        } else {
+            num.push(c);
+        }            
+    }
+    if num.len() > 0 {
+        instructions.push(num);
+    }
+    return instructions;
+}
+
+#[allow(dead_code)]
+fn print_grid(grid: &Array2<bool>) {
+    for row in grid.rows() {        
+        for b in row {
+            let c = if *b { '#' } else { '.' };
+            print!("{c}");
+        }
+        println!();
+    }
+    println!();
+}
+
+fn get_size(is_test: bool) -> usize {
+    return if is_test { 4 } else { 50 };
+}
+
+fn get_face_offset(is_test: bool) -> Vec<(usize, usize)> {
+    if is_test {
+        return vec![(8, 0), (0, 4), (4, 4), (8, 4), (8, 8), (12, 8)];
+    } else {
+        return vec![(50, 0), (100, 0), (50, 50), (0, 100), (50, 100), (0, 150)];
+    }
+}
+
+fn get_connections(is_test: bool, is_flat: bool) -> Vec<Vec<(usize, usize)>> { // (face, direction)
+    if is_test && is_flat {
+        return vec![
+            vec![(0, 0), (3, 1), (0, 2), (4, 3)], // face 0
+            vec![(2, 0), (1, 1), (3, 2), (1, 3)], // face 1
+            vec![(3, 0), (2, 1), (1, 2), (2, 3)], // face 2
+            vec![(1, 0), (4, 1), (2, 2), (0, 3)], // face 3
+            vec![(5, 0), (0, 1), (5, 2), (3, 3)], // face 4
+            vec![(4, 0), (5, 1), (4, 2), (5, 3)], // face 5
+        ];
+    } else if !is_test && is_flat {
+        return vec! [
+            vec![(1, 0), (2, 1), (1, 2), (4, 3)], // face 0
+            vec![(0, 0), (1, 1), (0, 2), (1, 3)], // face 1
+            vec![(2, 0), (4, 1), (2, 2), (0, 3)], // face 2
+            vec![(4, 0), (5, 1), (4, 2), (5, 3)], // face 3
+            vec![(3, 0), (0, 1), (3, 2), (2, 3)], // face 4
+            vec![(5, 0), (3, 1), (5, 2), (3, 3)], // face 5
+        ];
+    } else if is_test && !is_flat {
+        return vec! [
+            vec![(5, 0), (3, 1), (2, 1), (1, 1)], // face 0
+            vec![(2, 0), (4, 3), (5, 3), (0, 1)], // face 1
+            vec![(3, 0), (4, 0), (1, 2), (0, 0)], // face 2
+            vec![(5, 1), (4, 1), (2, 2), (0, 3)], // face 3
+            vec![(5, 0), (1, 3), (2, 3), (3, 3)], // face 4
+            vec![(0, 2), (1, 0), (4, 2), (3, 2)], // face 5
+        ];
+    } else {
+        return vec! [
+            vec![(1, 0), (2, 1), (3, 0), (5, 0)], // face 0
+            vec![(4, 2), (2, 2), (0, 2), (5, 3)], // face 1
+            vec![(1, 3), (4, 1), (3, 1), (0, 3)], // face 2
+            vec![(4, 0), (5, 1), (0, 0), (2, 0)], // face 3
+            vec![(1, 2), (5, 2), (3, 2), (2, 3)], // face 4
+            vec![(4, 3), (1, 1), (0, 1), (3, 3)], // face 5
+        ];
+    }
 }
