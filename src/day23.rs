@@ -43,7 +43,7 @@ impl ElfSim {
 
     fn new(input: &str) -> ElfSim {
 
-        let size = 200;
+        let size = 1000;
         let mid = size / 2;
 
         let lines:Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
@@ -74,8 +74,11 @@ impl ElfSim {
         let mut target_grid = Array2::from_elem((self.size, self.size), 0); 
 
         for i in 0..len {
-            let next_pos = self.get_elf_target(i);            
-            target_grid[next_pos] += 1;
+            let target = self.get_elf_target(i);
+            let mut elf = self.elves.get_mut(i).unwrap();
+            elf.x_target = target.0;
+            elf.y_target = target.1;          
+            target_grid[target] += 1;
         }
 
         let mut checker = false;
@@ -105,7 +108,7 @@ impl ElfSim {
     }
 
     fn get_elf_target(&mut self, index: usize) -> (usize, usize) {
-        let mut elf = self.elves.get_mut(index).unwrap();
+        let elf = self.elves.get(index).unwrap();
         let any_neighbours = ElfSim::get_all_neighbours(elf.x, elf.y).iter().map(|v| self.grid[*v]).any(|b| b);
         if !any_neighbours { return(elf.x, elf.y); }
 
@@ -114,12 +117,10 @@ impl ElfSim {
             let any_in_dir = dir_neighbours.iter().map(|v| self.grid[*v]).any(|b| b);
             if !any_in_dir {
                 let target = dir_neighbours[1];
-                elf.x_target = target.0;
-                elf.y_target = target.1;
                 return target;
             }
         }
-        return (0, 0);
+        return (elf.x, elf.y);
     }
 
     fn get_all_neighbours(x: usize, y: usize) -> Vec<(usize, usize)> {
